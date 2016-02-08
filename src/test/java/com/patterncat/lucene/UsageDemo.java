@@ -11,10 +11,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -22,14 +19,17 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.List;
 
 /**
+ * http://www.norconex.com/upgrading-code-to-lucene-4/
  * http://www.lucenetutorial.com/index.html
  * https://github.com/macluq/helloLucene
  * Created by patterncat on 2016-02-07.
@@ -62,6 +62,25 @@ public class UsageDemo {
         // use a string field for isbn because we don't want it tokenized
         doc.add(new StringField("isbn", isbn, Field.Store.YES));
         w.addDocument(doc);
+    }
+
+    @Test
+    public void iterateIndex() throws IOException {
+        IndexReader reader = DirectoryReader.open(FSDirectory.open(indexDir));
+        List<AtomicReaderContext> leaves = reader.leaves();
+        for (AtomicReaderContext context : leaves) {
+            AtomicReader atomicReader = context.reader();
+            Fields fields = atomicReader.fields();
+            for (String fieldName : fields) {
+                System.out.println("field:"+fieldName);
+                Terms terms = atomicReader.terms(fieldName);
+                TermsEnum te = terms.iterator(null);
+                BytesRef term;
+                while ((term = te.next()) != null) {
+                    System.out.println(term.utf8ToString());
+                }
+            }
+        }
     }
 
     @Test
